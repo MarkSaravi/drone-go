@@ -2,9 +2,13 @@ package nrf905
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/MarkSaravi/drone-go/connectors/gpio"
 	"github.com/MarkSaravi/drone-go/types"
+	"periph.io/x/periph/conn/physic"
+	"periph.io/x/periph/conn/spi"
+	"periph.io/x/periph/host/sysfs"
 )
 
 type nRF905 struct {
@@ -14,23 +18,29 @@ type nRF905 struct {
 	cd   *gpio.Pin
 	am   *gpio.Pin
 	dr   *gpio.Pin
-	miso *gpio.Pin
-	mosi *gpio.Pin
-	sck  *gpio.Pin
-	csn  *gpio.Pin
+	conn *spi.Conn
 }
 
 func CreateNRF905(config types.RadioLinkConfig) *nRF905 {
-	txen := createPin(gpio.GetGPIO(config.TXENGpioPin))
-	pwr := createPin(gpio.GetGPIO(config.PWRGpioPin))
-	ce := createPin(gpio.GetGPIO(config.CEGpioPin))
-	cd := createPin(gpio.GetGPIO(config.CDGpioPin))
-	am := createPin(gpio.GetGPIO(config.AMGpioPin))
-	dr := createPin(gpio.GetGPIO(config.DRGpioPin))
-	miso := createPin(gpio.GetGPIO(config.MISOGpioPin))
-	mosi := createPin(gpio.GetGPIO(config.MOSIGpioPin))
-	sck := createPin(gpio.GetGPIO(config.SCKGpioPin))
-	csn := createPin(gpio.GetGPIO(config.CSNGpioPin))
+	txen := createPin(gpio.GetGPIO(config.GPIO.TXEN))
+	pwr := createPin(gpio.GetGPIO(config.GPIO.PWR))
+	ce := createPin(gpio.GetGPIO(config.GPIO.CE))
+	cd := createPin(gpio.GetGPIO(config.GPIO.CD))
+	am := createPin(gpio.GetGPIO(config.GPIO.AM))
+	dr := createPin(gpio.GetGPIO(config.GPIO.DR))
+	d, err := sysfs.NewSPI(config.BusNumber, config.ChipSelect)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	// SPI1 only supports Mode0
+	//to enable SPI1 in raspberry pi follow instructions here https://docs.rs/rppal/0.8.1/rppal/spi/index.html
+	// or add "dtoverlay=spi1-3cs" to /boot/config.txt
+	conn, err := d.Connect(physic.MegaHertz, spi.Mode0, 8)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	r := nRF905{
 		txen: txen,
 		pwr:  pwr,
@@ -38,10 +48,7 @@ func CreateNRF905(config types.RadioLinkConfig) *nRF905 {
 		cd:   cd,
 		dr:   dr,
 		am:   am,
-		miso: miso,
-		mosi: mosi,
-		sck:  sck,
-		csn:  csn,
+		conn: &conn,
 	}
 	r.initReceiver()
 	return &r
@@ -56,14 +63,13 @@ func createPin(gpioPinNum int) *gpio.Pin {
 }
 
 func (r *nRF905) initReceiver() {
-	// set as receiver
 	r.txen.SetAsOutput()
 	r.txen.SetLow()
-	// enable receiver
-	r.ce.SetAsOutput()
-	r.ce.SetHigh()
 	r.pwr.SetAsOutput()
 	r.pwr.SetHigh()
+	r.ce.SetAsOutput()
+	r.ce.SetHigh()
+
 	r.dr.SetAsInput()
 	r.am.SetAsInput()
 	r.cd.SetAsInput()

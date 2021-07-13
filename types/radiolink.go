@@ -1,16 +1,18 @@
 package types
 
+type RadioLinkGPIOPins struct {
+	TXEN int `yaml:"txen"`
+	CE   int `yaml:"ce"`
+	PWR  int `yaml:"pwr"`
+	CD   int `yaml:"cd"`
+	AM   int `yaml:"am"`
+	DR   int `yaml:"dr"`
+}
+
 type RadioLinkConfig struct {
-	TXENGpioPin        int
-	CEGpioPin          int
-	PWRGpioPin         int
-	CDGpioPin          int
-	AMGpioPin          int
-	DRGpioPin          int
-	MISOGpioPin        int
-	MOSIGpioPin        int
-	SCKGpioPin         int
-	CSNGpioPin         int
-	ReceiverAddress    string
-	TransmitterAddress string
+	GPIO       RadioLinkGPIOPins `yaml:"gpio"`
+	RxAddress  string            `yaml:"rx_address"`
+	TxAddress  string            `yaml:"tx_address"`
+	BusNumber  int               `yaml:"bus_number"`
+	ChipSelect int               `yaml:"chip_select"`
 }
