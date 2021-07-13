@@ -63,13 +63,12 @@ func createPin(gpioPinNum int) *gpio.Pin {
 }
 
 func (rl *nRF905) initReceiver() {
-	rl.txen.SetAsOutput()
-	rl.pwr.SetAsOutput()
-	rl.ce.SetAsOutput()
-
 	rl.dr.SetAsInput()
 	rl.am.SetAsInput()
 	rl.cd.SetAsInput()
+	rl.txen.SetAsOutput()
+	rl.pwr.SetAsOutput()
+	rl.ce.SetAsOutput()
 
 	rl.txen.SetLow()
 	rl.pwr.SetLow()
@@ -103,4 +102,6 @@ func (rl *nRF905) IsDataReady() bool {
 }
 
 func (rl *nRF905) Close() {
+	rl.ce.SetLow()
+	rl.pwr.SetLow()
 }
