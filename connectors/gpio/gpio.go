@@ -2,6 +2,7 @@ package gpio
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
 	"sync"
@@ -73,6 +74,37 @@ const (
 	GPIO26 = J8Pin37
 	GPIO27 = J8Pin13
 )
+
+var gpioMap []int = []int{
+	0,
+	GPIO01,
+	GPIO02,
+	GPIO03,
+	GPIO04,
+	GPIO05,
+	GPIO06,
+	GPIO07,
+	GPIO08,
+	GPIO09,
+	GPIO10,
+	GPIO11,
+	GPIO12,
+	GPIO13,
+	GPIO14,
+	GPIO15,
+	GPIO16,
+	GPIO17,
+	GPIO18,
+	GPIO19,
+	GPIO20,
+	GPIO21,
+	GPIO22,
+	GPIO23,
+	GPIO24,
+	GPIO25,
+	GPIO26,
+	GPIO27,
+}
 
 const (
 	memLen = 4096
@@ -220,4 +252,11 @@ func NewPin(pin int) (*Pin, error) {
 		setReg:      setReg,
 		shadow:      shadow,
 	}, nil
+}
+
+func GetGPIO(gpio int) int {
+	if gpio < 1 || gpio > 27 {
+		panic(fmt.Sprintf("%d is not a valid gpio pin number", gpio))
+	}
+	return gpioMap[gpio]
 }
