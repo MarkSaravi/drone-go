@@ -95,9 +95,12 @@ func (rl *nRF905) initReceiver() {
 	rl.ce.SetHigh()
 }
 
-func (r *nRF905) IsDataReady() bool {
+func (rl *nRF905) IsDataReady() bool {
+	if rl.dr.GetLevel() == gpio.High {
+		return true
+	}
 	return false
 }
 
-func (r *nRF905) Close() {
+func (rl *nRF905) Close() {
 }

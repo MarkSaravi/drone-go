@@ -221,6 +221,14 @@ func (pin *Pin) SetLow() {
 	pin.write(Low)
 }
 
+func (pin *Pin) GetLevel() Level {
+	// Input level register offset (13 / 14 depending on bank)
+	if (memory[pin.levelReg] & (1 << uint8(pin.pin&31))) != 0 {
+		return High
+	}
+	return Low
+}
+
 //NewPin creates new pin
 func NewPin(pin int) (*Pin, error) {
 	if usedPins[pin] {
