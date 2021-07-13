@@ -18,7 +18,7 @@ type nRF905 struct {
 	cd   *gpio.Pin
 	am   *gpio.Pin
 	dr   *gpio.Pin
-	conn *spi.Conn
+	conn spi.Conn
 }
 
 func CreateNRF905(config types.RadioLinkConfig) *nRF905 {
@@ -48,7 +48,7 @@ func CreateNRF905(config types.RadioLinkConfig) *nRF905 {
 		cd:   cd,
 		dr:   dr,
 		am:   am,
-		conn: &conn,
+		conn: conn,
 	}
 	r.initReceiver()
 	return &r
@@ -62,17 +62,37 @@ func createPin(gpioPinNum int) *gpio.Pin {
 	return pin
 }
 
-func (r *nRF905) initReceiver() {
-	r.txen.SetAsOutput()
-	r.txen.SetLow()
-	r.pwr.SetAsOutput()
-	r.pwr.SetHigh()
-	r.ce.SetAsOutput()
-	r.ce.SetHigh()
+func (rl *nRF905) initReceiver() {
+	rl.txen.SetAsOutput()
+	rl.pwr.SetAsOutput()
+	rl.ce.SetAsOutput()
 
-	r.dr.SetAsInput()
-	r.am.SetAsInput()
-	r.cd.SetAsInput()
+	rl.dr.SetAsInput()
+	rl.am.SetAsInput()
+	rl.cd.SetAsInput()
+
+	rl.txen.SetLow()
+	rl.pwr.SetLow()
+	rl.ce.SetLow()
+	w := make([]uint8, 5)
+	r := make([]uint8, 5)
+	const READ_RX_ADDRESS uint8 = 0b00010101
+	const WRITE_RX_ADDRESS uint8 = 0b00000101
+	w[0] = READ_RX_ADDRESS
+	err := rl.conn.Tx(w, r)
+	fmt.Println(err, r)
+
+	w = []uint8{WRITE_RX_ADDRESS, 0x58, 0x6F, 0x2E, 0x10}
+	fmt.Println("Writing: ", w)
+	err = rl.conn.Tx(w, r)
+	fmt.Println(err, r)
+
+	w[0] = READ_RX_ADDRESS
+	err = rl.conn.Tx(w, r)
+	fmt.Println(err, r)
+
+	rl.pwr.SetHigh()
+	rl.ce.SetHigh()
 }
 
 func (r *nRF905) IsDataReady() bool {

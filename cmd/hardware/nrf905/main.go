@@ -18,7 +18,7 @@ func main() {
 			DR:   24,
 		},
 		BusNumber:  1,
-		ChipSelect: 0,
+		ChipSelect: 2,
 		RxAddress:  "",
 		TxAddress:  "",
 	})
