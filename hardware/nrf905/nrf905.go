@@ -63,6 +63,20 @@ func createPin(gpioPinNum uint8) *gpio.Pin {
 	return pin
 }
 
+func (rl *nRF905) standBy() {
+	fmt.Println("Standby")
+	rl.pwr.SetHigh()
+	rl.txe.SetLow()
+	rl.ce.SetLow()
+}
+
+func (rl *nRF905) powerUp() {
+	fmt.Println("Power Up")
+	rl.pwr.SetHigh()
+	rl.txe.SetHigh()
+	rl.ce.SetHigh()
+}
+
 func (rl *nRF905) initReceiver() {
 	rl.ce.SetAsOutput()
 	rl.txe.SetAsOutput()
@@ -72,10 +86,7 @@ func (rl *nRF905) initReceiver() {
 	rl.dr.SetAsInput()
 	rl.am.SetAsInput()
 
-	// Enable standby mode
-	rl.pwr.SetHigh()
-	rl.txe.SetLow()
-	rl.ce.SetLow()
+	rl.standBy()
 
 	r := make([]uint8, 11)
 	const READ_RX_ADDRESS uint8 = 0b00010000
@@ -91,15 +102,19 @@ func (rl *nRF905) initReceiver() {
 	fmt.Println(r[1:])
 	fmt.Printf("0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X\n %v\n", r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], err)
 	time.Sleep(20 * time.Millisecond)
-	rl.pwr.SetHigh()
-	rl.ce.SetHigh()
+	rl.powerUp()
 }
 
 func (rl *nRF905) IsDataReady() bool {
-	if rl.dr.GetLevel() == gpio.High {
-		return true
+	w := []uint8{0xFF}
+	r := []uint8{0}
+	err := rl.conn.Tx(w, r)
+
+	if err != nil {
+		fmt.Println(err)
 	}
-	return false
+	var dataReady uint8 = r[0] & 0b00100000
+	return dataReady != 0
 }
 
 func (rl *nRF905) Close() {
