@@ -3,6 +3,7 @@ package nrf905
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/MarkSaravi/drone-go/connectors/gpio"
 	"github.com/MarkSaravi/drone-go/types"
@@ -12,7 +13,7 @@ import (
 )
 
 type nRF905 struct {
-	txen *gpio.Pin
+	txe  *gpio.Pin
 	pwr  *gpio.Pin
 	ce   *gpio.Pin
 	cd   *gpio.Pin
@@ -22,7 +23,7 @@ type nRF905 struct {
 }
 
 func CreateNRF905(config types.RadioLinkConfig) *nRF905 {
-	txen := createPin(gpio.GetGPIO(config.GPIO.TXEN))
+	txe := createPin(gpio.GetGPIO(config.GPIO.TXEN))
 	pwr := createPin(gpio.GetGPIO(config.GPIO.PWR))
 	ce := createPin(gpio.GetGPIO(config.GPIO.CE))
 	cd := createPin(gpio.GetGPIO(config.GPIO.CD))
@@ -42,9 +43,9 @@ func CreateNRF905(config types.RadioLinkConfig) *nRF905 {
 		os.Exit(1)
 	}
 	r := nRF905{
-		txen: txen,
-		pwr:  pwr,
-		ce:   ce,
+		txe:  txe, // High to enable Tx
+		pwr:  pwr, // Power up
+		ce:   ce,  // Tx and Rx enable
 		cd:   cd,
 		dr:   dr,
 		am:   am,
@@ -54,7 +55,7 @@ func CreateNRF905(config types.RadioLinkConfig) *nRF905 {
 	return &r
 }
 
-func createPin(gpioPinNum int) *gpio.Pin {
+func createPin(gpioPinNum uint8) *gpio.Pin {
 	pin, err := gpio.NewPin(gpioPinNum)
 	if err != nil {
 		panic(fmt.Sprintf("Can't create pin %d", gpioPinNum))
@@ -63,33 +64,33 @@ func createPin(gpioPinNum int) *gpio.Pin {
 }
 
 func (rl *nRF905) initReceiver() {
+	rl.ce.SetAsOutput()
+	rl.txe.SetAsOutput()
+	rl.pwr.SetAsOutput()
+
+	rl.cd.SetAsInput()
 	rl.dr.SetAsInput()
 	rl.am.SetAsInput()
-	rl.cd.SetAsInput()
-	rl.txen.SetAsOutput()
-	rl.pwr.SetAsOutput()
-	rl.ce.SetAsOutput()
 
-	rl.txen.SetLow()
-	rl.pwr.SetLow()
+	// Enable standby mode
+	rl.pwr.SetHigh()
+	rl.txe.SetLow()
 	rl.ce.SetLow()
-	w := make([]uint8, 5)
-	r := make([]uint8, 5)
-	const READ_RX_ADDRESS uint8 = 0b00010101
-	const WRITE_RX_ADDRESS uint8 = 0b00000101
-	w[0] = READ_RX_ADDRESS
-	err := rl.conn.Tx(w, r)
-	fmt.Println(err, r)
 
-	w = []uint8{WRITE_RX_ADDRESS, 0x58, 0x6F, 0x2E, 0x10}
+	r := make([]uint8, 11)
+	const READ_RX_ADDRESS uint8 = 0b00010000
+	const WRITE_RX_ADDRESS uint8 = 0b00000000
+
+	w := []uint8{WRITE_RX_ADDRESS, 0x6C, 0xC, 0x44, 0x20, 0x20, 0x58, 0x6F, 0x2E, 0x10, 0xD8}
 	fmt.Println("Writing: ", w)
-	err = rl.conn.Tx(w, r)
-	fmt.Println(err, r)
+	err := rl.conn.Tx(w, nil)
+	time.Sleep(20 * time.Millisecond)
 
 	w[0] = READ_RX_ADDRESS
 	err = rl.conn.Tx(w, r)
-	fmt.Println(err, r)
-
+	fmt.Println(r[1:])
+	fmt.Printf("0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X\n %v\n", r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], err)
+	time.Sleep(20 * time.Millisecond)
 	rl.pwr.SetHigh()
 	rl.ce.SetHigh()
 }
