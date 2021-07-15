@@ -12,3 +12,13 @@
 |SCK          |SPI1 SCLK GPIO21 (40)|13           |SPI SCK (Mega pin 52)|
 |CSN          |SPI1 CE2 GPIO16 (36) |10           |SPI SS|
 |GND          |GND                  |GND          |Ground|
+
+
+
+
+### Pin name differences
+
+|Module|IC    |
+|------|------|
+|CE    |TRX_EN|
+|TXE   |TX_EN |

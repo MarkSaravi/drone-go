@@ -75,7 +75,7 @@ const (
 	GPIO27 = J8Pin13
 )
 
-var gpioMap []int = []int{
+var gpioMap []uint8 = []uint8{
 	0,
 	GPIO01,
 	GPIO02,
@@ -169,13 +169,13 @@ func Close() error {
 
 //Pin is a J8 pin
 type Pin struct {
-	pin         int
-	fsel        int
-	levelReg    int
-	clearReg    int
-	setReg      int
-	pullReg2711 int
-	bank        int
+	pin         uint8
+	fsel        uint8
+	levelReg    uint8
+	clearReg    uint8
+	setReg      uint8
+	pullReg2711 uint8
+	bank        uint8
 	mask        uint32
 	shadow      Level
 }
@@ -230,7 +230,7 @@ func (pin *Pin) GetLevel() Level {
 }
 
 //NewPin creates new pin
-func NewPin(pin int) (*Pin, error) {
+func NewPin(pin uint8) (*Pin, error) {
 	if usedPins[pin] {
 		return nil, errors.New("Pin is already taken")
 	}
@@ -262,7 +262,7 @@ func NewPin(pin int) (*Pin, error) {
 	}, nil
 }
 
-func GetGPIO(gpio int) int {
+func GetGPIO(gpio int) uint8 {
 	if gpio < 1 || gpio > 27 {
 		panic(fmt.Sprintf("%d is not a valid gpio pin number", gpio))
 	}
