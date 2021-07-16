@@ -70,6 +70,7 @@ func (rl *nRF905) standBy() {
 	rl.pwr.Out(gpio.High)
 	rl.txe.Out(gpio.Low)
 	rl.ce.Out(gpio.Low)
+	time.Sleep(10 * time.Millisecond)
 }
 
 func (rl *nRF905) powerUp() {
@@ -77,6 +78,7 @@ func (rl *nRF905) powerUp() {
 	rl.pwr.Out(gpio.High)
 	rl.txe.Out(gpio.High)
 	rl.ce.Out(gpio.High)
+	time.Sleep(10 * time.Millisecond)
 }
 
 func (rl *nRF905) initReceiver() {
