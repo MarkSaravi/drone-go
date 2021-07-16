@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/MarkSaravi/drone-go/types"
@@ -61,7 +63,7 @@ func CreateNRF905(config types.RadioLinkConfig) *nRF905 {
 		am:   am,
 		conn: conn,
 	}
-	r.initReceiver()
+	r.initReceiver(config.RxAddress)
 	return &r
 }
 
@@ -88,7 +90,7 @@ func (rl *nRF905) PowerUp() {
 	time.Sleep(10 * time.Millisecond)
 }
 
-func (rl *nRF905) initReceiver() {
+func (rl *nRF905) initReceiver(address string) {
 	rl.cd.In(gpio.PullDown, gpio.RisingEdge)
 	rl.dr.In(gpio.PullDown, gpio.RisingEdge)
 	rl.am.In(gpio.PullDown, gpio.RisingEdge)
@@ -97,16 +99,16 @@ func (rl *nRF905) initReceiver() {
 
 	rl.standBy()
 
-	w := []byte{WRITE_CONFIG, 0x6C, 0xC, 0x44, RX_PAYLOAD_WIDTH, TX_PAYLOAD_WIDTH, 0x90, 0x3C, 0xB5, 0x39, 0xD8}
+	rxadd := parseAddress(address)
+	w := []byte{WRITE_CONFIG, 0x6C, 0xC, 0x44, RX_PAYLOAD_WIDTH, TX_PAYLOAD_WIDTH, rxadd[3], rxadd[2], rxadd[1], rxadd[0], 0xD8}
 	fmt.Println("Writing: ", w)
-	err := rl.conn.Tx(w, nil)
+	rl.conn.Tx(w, nil)
 	time.Sleep(20 * time.Millisecond)
 
 	r := make([]byte, 11)
 	w[0] = READ_CONFIG
-	err = rl.conn.Tx(w, r)
-	fmt.Println(r[1:])
-	fmt.Printf("Channel no: 0x%X\n 0x%X\n 0x%X\n Rx Payload width: 0x%X\n Tx Payload width: 0x%X\n Rx Address[0]: 0x%X\n Rx Address[1]: 0x%X\n Rx Address[2]: 0x%X\n Rx Address[3]: 0x%X\n 0x%X\n%v\n", r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], err)
+	rl.conn.Tx(w, r)
+	fmt.Println("Config: ", r[1:])
 	time.Sleep(20 * time.Millisecond)
 }
 
@@ -132,4 +134,14 @@ func (rl *nRF905) ReadConfig() []byte {
 func (rl *nRF905) Close() {
 	rl.ce.Out(gpio.Low)
 	rl.pwr.Out(gpio.Low)
+}
+
+func parseAddress(address string) []byte {
+	s := strings.Split(address, ":")
+	b := make([]byte, 4)
+	for i := 0; i < 4; i++ {
+		n, _ := strconv.ParseInt(s[i], 16, 16)
+		b[i] = byte(n)
+	}
+	return b
 }

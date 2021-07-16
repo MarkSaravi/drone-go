@@ -26,7 +26,7 @@ func main() {
 		},
 		BusNumber:  1,
 		ChipSelect: 2,
-		RxAddress:  "",
+		RxAddress:  "39:B5:3C:90",
 		TxAddress:  "",
 	}
 
