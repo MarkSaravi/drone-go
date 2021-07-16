@@ -14,6 +14,14 @@ import (
 	"periph.io/x/periph/host/sysfs"
 )
 
+const (
+	READ_RX_PAYLOAD  uint8 = 0b00100100
+	READ_RX_ADDRESS  uint8 = 0b00010000
+	WRITE_RX_ADDRESS uint8 = 0b00000000
+	RX_PAYLOAD_WIDTH uint8 = 32
+	TX_PAYLOAD_WIDTH uint8 = 32
+)
+
 type nRF905 struct {
 	txe  gpio.PinOut
 	pwr  gpio.PinOut
@@ -93,10 +101,8 @@ func (rl *nRF905) initReceiver() {
 	rl.standBy()
 
 	r := make([]uint8, 11)
-	const READ_RX_ADDRESS uint8 = 0b00010000
-	const WRITE_RX_ADDRESS uint8 = 0b00000000
 
-	w := []uint8{WRITE_RX_ADDRESS, 0x6C, 0xC, 0x44, 0x20, 0x20, 0x58, 0x6F, 0x2E, 0x10, 0xD8}
+	w := []uint8{WRITE_RX_ADDRESS, 0x6C, 0xC, 0x44, RX_PAYLOAD_WIDTH, TX_PAYLOAD_WIDTH, 0x58, 0x6F, 0x2E, 0x10, 0xD8}
 	fmt.Println("Writing: ", w)
 	err := rl.conn.Tx(w, nil)
 	time.Sleep(20 * time.Millisecond)
@@ -104,13 +110,21 @@ func (rl *nRF905) initReceiver() {
 	w[0] = READ_RX_ADDRESS
 	err = rl.conn.Tx(w, r)
 	fmt.Println(r[1:])
-	fmt.Printf("0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X, 0x%X\n %v\n", r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], err)
+	fmt.Printf("Channel no: 0x%X\n 0x%X\n 0x%X\n Rx Payload width: 0x%X\n Tx Payload width: 0x%X\n Rx Address[0]: 0x%X\n Rx Address[1]: 0x%X\n Rx Address[2]: 0x%X\n Rx Address[3]: 0x%X\n 0x%X\n%v\n", r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], err)
 	time.Sleep(20 * time.Millisecond)
 	rl.powerUp()
 }
 
 func (rl *nRF905) IsDataReady() bool {
 	return rl.dr.WaitForEdge(time.Millisecond)
+}
+
+func (rl *nRF905) ReadData() []byte {
+	w := make([]uint8, RX_PAYLOAD_WIDTH+1)
+	r := make([]uint8, RX_PAYLOAD_WIDTH+1)
+	w[0] = READ_RX_PAYLOAD
+	rl.conn.Tx(w, r)
+	return r[1:]
 }
 
 func (rl *nRF905) Close() {
