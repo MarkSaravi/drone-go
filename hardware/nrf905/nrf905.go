@@ -97,7 +97,7 @@ func (rl *nRF905) initReceiver() {
 
 	rl.standBy()
 
-	w := []byte{WRITE_CONFIG, 0x6C, 0xC, 0x44, RX_PAYLOAD_WIDTH, TX_PAYLOAD_WIDTH, 0x10, 0x2E, 0x6F, 0x58, 0xD8}
+	w := []byte{WRITE_CONFIG, 0x6C, 0xC, 0x44, RX_PAYLOAD_WIDTH, TX_PAYLOAD_WIDTH, 0x90, 0x3C, 0xB5, 0x39, 0xD8}
 	fmt.Println("Writing: ", w)
 	err := rl.conn.Tx(w, nil)
 	time.Sleep(20 * time.Millisecond)

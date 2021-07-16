@@ -37,12 +37,12 @@ func main() {
 	nrf905.PowerUp()
 	fmt.Println(nrf905.ReadData())
 	for !end {
-		if nrf905.IsDataReady() {
-			fmt.Println(string(nrf905.ReadData()))
-		}
 		select {
 		case end = <-endChannel:
 		default:
+			if nrf905.IsDataReady() {
+				fmt.Println(string(nrf905.ReadData()))
+			}
 		}
 	}
 }
