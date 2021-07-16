@@ -2,33 +2,35 @@ package nrf905
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	"github.com/MarkSaravi/drone-go/types"
-	"github.com/stianeikeland/go-rpio"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
 	"periph.io/x/periph/conn/physic"
 	"periph.io/x/periph/conn/spi"
 	"periph.io/x/periph/host/sysfs"
 )
 
 type nRF905 struct {
-	txe  *rpio.Pin
-	pwr  *rpio.Pin
-	ce   *rpio.Pin
-	cd   *rpio.Pin
-	am   *rpio.Pin
-	dr   *rpio.Pin
+	txe  gpio.PinOut
+	pwr  gpio.PinOut
+	ce   gpio.PinOut
+	cd   gpio.PinIn
+	am   gpio.PinIn
+	dr   gpio.PinIn
 	conn spi.Conn
 }
 
 func CreateNRF905(config types.RadioLinkConfig) *nRF905 {
-	txe := rpio.Pin(config.GPIO.TXEN)
-	pwr := rpio.Pin(config.GPIO.PWR)
-	ce := rpio.Pin(config.GPIO.CE)
-	cd := rpio.Pin(config.GPIO.CD)
-	am := rpio.Pin(config.GPIO.AM)
-	dr := rpio.Pin(config.GPIO.DR)
+	txe := initPin(config.GPIO.TXEN)
+	pwr := initPin(config.GPIO.PWR)
+	ce := initPin(config.GPIO.CE)
+	cd := initPin(config.GPIO.CD)
+	am := initPin(config.GPIO.AM)
+	dr := initPin(config.GPIO.DR)
 	d, err := sysfs.NewSPI(config.BusNumber, config.ChipSelect)
 	if err != nil {
 		fmt.Println(err)
@@ -43,44 +45,48 @@ func CreateNRF905(config types.RadioLinkConfig) *nRF905 {
 		os.Exit(1)
 	}
 	r := nRF905{
-		txe:  &txe, // High to enable Tx
-		pwr:  &pwr, // Power up
-		ce:   &ce,  // Tx and Rx enable
-		cd:   &cd,
-		dr:   &dr,
-		am:   &am,
+		txe:  txe, // High to enable Tx
+		pwr:  pwr, // Power up
+		ce:   ce,  // Tx and Rx enable
+		cd:   cd,
+		dr:   dr,
+		am:   am,
 		conn: conn,
 	}
 	r.initReceiver()
 	return &r
 }
 
+func initPin(pinName string) gpio.PinIO {
+	pin := gpioreg.ByName(pinName)
+	if pin == nil {
+		log.Fatal("Failed to find ", pinName)
+	}
+	return pin
+}
+
 func (rl *nRF905) standBy() {
 	fmt.Println("Standby")
-	rl.pwr.High()
-	rl.txe.Low()
-	rl.ce.Low()
+	rl.pwr.Out(gpio.High)
+	rl.txe.Out(gpio.Low)
+	rl.ce.Out(gpio.Low)
 }
 
 func (rl *nRF905) powerUp() {
 	fmt.Println("Power Up")
-	rl.pwr.High()
-	rl.txe.High()
-	rl.ce.High()
+	rl.pwr.Out(gpio.High)
+	rl.txe.Out(gpio.High)
+	rl.ce.Out(gpio.High)
 }
 
 func (rl *nRF905) initReceiver() {
-	rl.ce.Output()
-	rl.txe.Output()
-	rl.pwr.Output()
+	rl.ce.Out(gpio.Low)
+	rl.txe.Out(gpio.Low)
+	rl.pwr.Out(gpio.Low)
 
-	rl.cd.Input()
-	rl.dr.Input()
-	rl.am.Input()
-
-	rl.dr.PullDown()
-	rl.am.PullDown()
-	rl.cd.PullDown()
+	rl.cd.In(gpio.PullDown, gpio.RisingEdge)
+	rl.dr.In(gpio.PullDown, gpio.RisingEdge)
+	rl.am.In(gpio.PullDown, gpio.RisingEdge)
 
 	rl.standBy()
 
@@ -102,10 +108,10 @@ func (rl *nRF905) initReceiver() {
 }
 
 func (rl *nRF905) IsDataReady() bool {
-	return rl.dr.Read() == rpio.High
+	return rl.dr.WaitForEdge(time.Millisecond)
 }
 
 func (rl *nRF905) Close() {
-	rl.ce.Low()
-	rl.pwr.Low()
+	rl.ce.Out(gpio.Low)
+	rl.pwr.Out(gpio.Low)
 }

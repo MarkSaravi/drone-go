@@ -1,12 +1,12 @@
 package types
 
 type RadioLinkGPIOPins struct {
-	TXEN uint8 `yaml:"txen"`
-	CE   uint8 `yaml:"ce"`
-	PWR  uint8 `yaml:"pwr"`
-	CD   uint8 `yaml:"cd"`
-	AM   uint8 `yaml:"am"`
-	DR   uint8 `yaml:"dr"`
+	TXEN string `yaml:"txen"`
+	CE   string `yaml:"ce"`
+	PWR  string `yaml:"pwr"`
+	CD   string `yaml:"cd"`
+	AM   string `yaml:"am"`
+	DR   string `yaml:"dr"`
 }
 
 type RadioLinkConfig struct {

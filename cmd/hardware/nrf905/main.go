@@ -2,40 +2,27 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
-	"time"
 
 	"github.com/MarkSaravi/drone-go/hardware/nrf905"
 	"github.com/MarkSaravi/drone-go/types"
-	"github.com/stianeikeland/go-rpio"
+	"periph.io/x/periph/host"
 )
 
 func main() {
-	err := rpio.Open()
-	if err != nil {
-		fmt.Println(err)
-		return
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
 	}
-	defer rpio.Close()
-
-	var run bool = true
-	go func() {
-		var b []byte = make([]byte, 1)
-		os.Stdin.Read(b)
-		if b[0] == '\n' {
-			run = false
-			return
-		}
-	}()
 
 	config := types.RadioLinkConfig{
 		GPIO: types.RadioLinkGPIOPins{
-			TXEN: 6,
-			CE:   26,
-			PWR:  5,
-			CD:   25,
-			AM:   23,
-			DR:   24,
+			TXEN: "GPIO6",
+			CE:   "GPIO26",
+			PWR:  "GPIO5",
+			CD:   "GPIO25",
+			AM:   "GPIO23",
+			DR:   "GPIO24",
 		},
 		BusNumber:  1,
 		ChipSelect: 2,
@@ -44,17 +31,29 @@ func main() {
 	}
 
 	nrf905 := nrf905.CreateNRF905(config)
-	var isready bool = true
-	for run {
-		drstate := nrf905.IsDataReady()
-		if isready != drstate {
-			isready = drstate
-			if isready {
-				fmt.Println("Data Ready")
-			} else {
-				fmt.Println("Waiting")
-			}
+	endChannel := createEndChannel()
+	end := false
+	for !end {
+		isready := nrf905.IsDataReady()
+		if isready {
+			fmt.Println("Data Ready")
 		}
-		time.Sleep(time.Second / 10)
+		select {
+		case end = <-endChannel:
+		default:
+		}
 	}
+}
+
+func createEndChannel() chan (bool) {
+	end := make(chan (bool), 1)
+	go func() {
+		var b []byte = make([]byte, 1)
+		os.Stdin.Read(b)
+		if b[0] == '\n' {
+			end <- true
+			return
+		}
+	}()
+	return end
 }
