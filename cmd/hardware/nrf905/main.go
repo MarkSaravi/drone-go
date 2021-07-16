@@ -31,12 +31,14 @@ func main() {
 	}
 
 	nrf905 := nrf905.CreateNRF905(config)
+	nrf905.ReadData()
 	endChannel := createEndChannel()
 	end := false
+	nrf905.PowerUp()
+	fmt.Println(nrf905.ReadData())
 	for !end {
 		if nrf905.IsDataReady() {
-			fmt.Println("Data Ready")
-			fmt.Println(nrf905.ReadData())
+			fmt.Println(string(nrf905.ReadData()))
 		}
 		select {
 		case end = <-endChannel:
