@@ -59,3 +59,13 @@ func createEndChannel() chan (bool) {
 	}()
 	return end
 }
+
+// func Int16ToUint8(n int16) []uint8 {
+// 	var ui uint16 = uint16(n)
+// 	return []uint8{uint8(ui & 0b0000000011111111), uint8(ui >> 8)}
+// }
+
+// func Uint8ToInt16(ui8 []uint8) int16 {
+// 	var ui16 uint16 = uint16(ui8[1])<<8 | uint16(ui8[0])
+// 	return int16(ui16)
+// }
