@@ -1,39 +1,72 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	"log"
 	"time"
 
-	"github.com/MarkSaravi/drone-go/connectors/gpio"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/host"
 )
 
 func main() {
-	pn := flag.Int("pin", 2, "Pin")
-	flag.Parse()
-	gpiopin := gpio.GPIO02
-	switch *pn {
-	case 4:
-		gpiopin = gpio.GPIO04
-	case 17:
-		gpiopin = gpio.GPIO17
-	default:
-		gpiopin = 2
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
 	}
-	err := gpio.Open()
-	defer gpio.Close()
-	fmt.Println("GPIO is opened successfully")
-	pin, err := gpio.NewPin(gpiopin)
-	if err != nil {
-		fmt.Println(err)
-		return
+	const pinOutName = "GPIO6"
+	const pinInName = "GPIO24"
+	testPinOut(setupPin(pinOutName))
+	testPinIn(setupPin(pinInName), setupPin(pinOutName))
+}
+
+func setupPin(pinName string) gpio.PinIO {
+	pin := gpioreg.ByName(pinName)
+	if pin == nil {
+		log.Fatal("Failed to find ", pinName)
 	}
-	fmt.Println("Set output")
-	pin.SetAsOutput()
-	defer pin.SetAsInput()
-	fmt.Println("Set High")
-	pin.SetHigh()
-	time.Sleep(5 * time.Second)
-	fmt.Println("Set Low")
-	pin.SetLow()
+	return pin
+}
+
+func testPinOut(p gpio.PinOut) {
+	// Use gpioreg GPIO pin registry to find a GPIO pin by name.
+	for i := 0; i < 5; i++ {
+		setPinOutLevel(p, gpio.High)
+		time.Sleep(time.Second / 2)
+		setPinOutLevel(p, gpio.Low)
+		time.Sleep(time.Second / 2)
+	}
+}
+
+func setPinOutLevel(p gpio.PinOut, level gpio.Level) {
+	if err := p.Out(level); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func testPinIn(pin gpio.PinIn, pout gpio.PinOut) {
+	end := make(chan (int), 1)
+	go func() {
+		fmt.Println("Setting level for ", pin)
+		time.Sleep(time.Millisecond * 10)
+		testPinOut(pout)
+		end <- 1
+	}()
+	// Set it as input, with a pull down (defaults to Low when unconnected) and
+	// enable rising edge triggering.
+	if err := pin.In(gpio.PullDown, gpio.RisingEdge); err != nil {
+		log.Fatal(err)
+	}
+
+	var run bool = true
+	for run {
+		select {
+		case <-end:
+			run = false
+		default:
+			if wh := pin.WaitForEdge(time.Millisecond); wh {
+				fmt.Printf("%s went %s\n", pin, gpio.High)
+			}
+		}
+	}
 }
