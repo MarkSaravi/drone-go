@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/MarkSaravi/drone-go/hardware/nrf905"
 	"github.com/MarkSaravi/drone-go/types"
@@ -37,6 +38,7 @@ func main() {
 	nrf905.PowerUp()
 	fmt.Println(nrf905.ReadData())
 	for !end {
+		time.Sleep(time.Millisecond * 5)
 		select {
 		case end = <-endChannel:
 		default:
