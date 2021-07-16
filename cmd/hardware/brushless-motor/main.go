@@ -3,14 +3,20 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/MarkSaravi/drone-go/connectors/i2c"
 	"github.com/MarkSaravi/drone-go/hardware/pca9685"
 	"github.com/MarkSaravi/drone-go/modules/powerbreaker"
+	"periph.io/x/periph/host"
 )
 
 func main() {
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
+	}
+
 	channel := flag.Int("ch", 0, "ESC channel")
 	flag.Parse()
 
