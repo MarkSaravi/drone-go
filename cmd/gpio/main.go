@@ -1,87 +1,81 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"log"
 	"time"
 
-	"github.com/stianeikeland/go-rpio"
+	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/gpio/gpioreg"
+	"periph.io/x/periph/host"
 )
 
 func main() {
-	err := rpio.Open()
-	if err != nil {
-		fmt.Println(err)
-		return
+	if _, err := host.Init(); err != nil {
+		log.Fatal(err)
 	}
-	defer rpio.Close()
 
-	// config := types.RadioLinkConfig{
-	// 	GPIO: types.RadioLinkGPIOPins{
-	// 		TXEN: 6,
-	// 		CE:   26,
-	// 		PWR:  5,
-	// 		CD:   25,
-	// 		AM:   23,
-	// 		DR:   24,
-	// 	},
-	// 	BusNumber:  1,
-	// 	ChipSelect: 2,
-	// 	RxAddress:  "",
-	// 	TxAddress:  "",
-	// }
-
-	inputTest()
-
+	testPinOut("GPIO24")
 }
 
-func inputTest() {
-	var counter int = 0
-	var run bool = true
-	go func() {
-		var b []byte = make([]byte, 1)
-		os.Stdin.Read(b)
-		if b[0] == '\n' {
-			run = false
-			return
-		}
-	}()
+// func inputTest() {
+// 	var counter int = 0
+// 	var run bool = true
+// 	go func() {
+// 		var b []byte = make([]byte, 1)
+// 		os.Stdin.Read(b)
+// 		if b[0] == '\n' {
+// 			run = false
+// 			return
+// 		}
+// 	}()
 
-	go func() {
-		outpin := rpio.Pin(25)
-		fmt.Println("Output started")
-		outpin.Output()
-		for run {
-			outpin.High()
-			time.Sleep(time.Second)
-			outpin.Low()
-			time.Sleep(time.Second)
-		}
-		fmt.Println("Output stopped")
-	}()
+// 	go func() {
+// 		outpin := rpio.Pin(25)
+// 		fmt.Println("Output started")
+// 		outpin.Output()
+// 		for run {
+// 			outpin.High()
+// 			time.Sleep(time.Second)
+// 			outpin.Low()
+// 			time.Sleep(time.Second)
+// 		}
+// 		fmt.Println("Output stopped")
+// 	}()
 
-	inpin := rpio.Pin(24)
-	inpin.Input()
-	inpin.PullDown()
-	pState := rpio.Low
-	for run {
-		nState := inpin.Read()
-		if nState != pState {
-			pState = nState
-			fmt.Println(nState, counter)
-			counter++
-		}
+// 	inpin := rpio.Pin(24)
+// 	inpin.Input()
+// 	inpin.PullDown()
+// 	pState := rpio.Low
+// 	for run {
+// 		nState := inpin.Read()
+// 		if nState != pState {
+// 			pState = nState
+// 			fmt.Println(nState, counter)
+// 			counter++
+// 		}
+// 	}
+// }
+
+func testPinOut(pin string) {
+	// Use gpioreg GPIO pin registry to find a GPIO pin by name.
+	p := gpioreg.ByName(pin)
+	if p == nil {
+		log.Fatal("Failed to find GPIO6")
 	}
-}
-
-func outputTest(pin *rpio.Pin) {
-	pin.Output()
+	if err := p.Out(gpio.High); err != nil {
+		log.Fatal(err)
+	}
 	start := time.Now()
 	for time.Since(start) < time.Second*5 {
-		pin.High()
-		time.Sleep(time.Millisecond * 250)
-		pin.Low()
-		time.Sleep(time.Millisecond * 250)
+		setPinOutLevel(p, gpio.High)
+		time.Sleep(time.Second / 2)
+		setPinOutLevel(p, gpio.Low)
+		time.Sleep(time.Second / 2)
 	}
-	pin.Input()
+}
+
+func setPinOutLevel(p gpio.PinOut, level gpio.Level) {
+	if err := p.Out(level); err != nil {
+		log.Fatal(err)
+	}
 }
