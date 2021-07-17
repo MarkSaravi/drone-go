@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"time"
+	"unsafe"
 
 	"github.com/MarkSaravi/drone-go/hardware/nrf905"
 	"github.com/MarkSaravi/drone-go/types"
@@ -43,12 +44,23 @@ func main() {
 		case end = <-endChannel:
 		default:
 			if nrf905.IsDataReady() {
-				fmt.Println(string(nrf905.ReadData()))
+				byteData := nrf905.ReadData()
+				intData := byteArrayToInt16Array(byteData, 32)
+				fmt.Println(intData)
 			}
 		}
 	}
 }
 
+func byteArrayToInt16Array(ba []byte, size int) []int16 {
+	type pInt16Array = *([]int16)
+	var pi16 pInt16Array = pInt16Array(unsafe.Pointer(&ba))
+	var ia []int16 = make([]int16, size/2)
+	for i := 0; i < size/2; i++ {
+		ia[i] = (*pi16)[i]
+	}
+	return ia
+}
 func createEndChannel() chan (bool) {
 	end := make(chan (bool), 1)
 	go func() {
